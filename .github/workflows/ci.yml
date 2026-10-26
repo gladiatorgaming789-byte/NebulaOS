@@ -14,4 +14,4 @@ jobs:
         with:
           python-version: '3.x'
       - name: Run offline source checks
-        run: ./scripts/validate-source.sh
+        run: bash ./scripts/validate-source.sh
