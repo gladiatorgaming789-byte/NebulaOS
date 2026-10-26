@@ -2,6 +2,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 MODULE = Path(__file__).resolve().parents[1] / "desktop" / "nebula_fileops.py"
 spec = importlib.util.spec_from_file_location("nebula_fileops", MODULE)
@@ -97,6 +98,50 @@ class FileOpsTests(unittest.TestCase):
             fileops.copy_item(source, destination)
             self.assertEqual(destination.read_text(), "new content")
             self.assertFalse(list(root.glob("*.copy-tmp")))
+
+
+    def test_cross_filesystem_move_fallback_copies_then_removes_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("move safely")
+            destination = root / "destination.txt"
+            with patch.object(fileops, "_rename_no_replace", return_value=False):
+                fileops.move_item(source, destination)
+            self.assertFalse(source.exists())
+            self.assertEqual(destination.read_text(), "move safely")
+
+    def test_copy_permission_error_preserves_source_and_cleans_temporary_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("keep source")
+            destination = root / "destination.txt"
+            with patch.object(fileops.shutil, "copy2", side_effect=PermissionError("denied")):
+                with self.assertRaises(PermissionError):
+                    fileops.copy_item(source, destination)
+            self.assertTrue(source.exists())
+            self.assertFalse(destination.exists())
+            self.assertEqual(source.read_text(), "keep source")
+            self.assertFalse(list(root.glob(".*.copy-tmp")))
+
+    def test_copy_race_does_not_overwrite_destination_created_after_initial_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("source")
+            destination = root / "destination.txt"
+
+            def competing_link(_temporary, target, **_kwargs):
+                Path(target).write_text("created by another process")
+                raise FileExistsError(target)
+
+            with patch.object(fileops.os, "link", side_effect=competing_link):
+                with self.assertRaises(FileExistsError):
+                    fileops.copy_item(source, destination)
+            self.assertEqual(destination.read_text(), "created by another process")
+            self.assertEqual(source.read_text(), "source")
+            self.assertFalse(list(root.glob(".*.copy-tmp")))
 
     def test_format_size(self):
         self.assertEqual(fileops.format_size(42), "42 B")
