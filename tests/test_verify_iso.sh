@@ -44,7 +44,7 @@ printf 'Unexpected xorriso invocation: %s\n' "$*" >&2
 exit 2
 MOCK
 chmod +x "$TMP/bin/xorriso"
-if PATH="$TMP/bin:$PATH" "$ROOT/scripts/verify-iso.sh" "$TMP/fake.iso" >"$TMP/success.log" 2>&1; then
+if PATH="$TMP/bin:$PATH" bash "$ROOT/scripts/verify-iso.sh" "$TMP/fake.iso" >"$TMP/success.log" 2>&1; then
   echo 'ISO verifier accepts a structurally complete fixture.'
 else
   cat "$TMP/success.log" >&2
