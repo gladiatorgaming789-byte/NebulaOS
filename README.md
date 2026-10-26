@@ -15,23 +15,33 @@ NebulaOS is a Debian-based desktop OS project focused on a lightweight live desk
 - `tests/` — automated Python and shell regression tests.
 - `docs/ARCHITECTURE.md`, `docs/TEST_PLAN.md`, `docs/SECURITY.md` — design, acceptance, and security notes.
 
-## Development prerequisites
+## Build an ISO with GitHub Actions (recommended)
 
-For source validation, use Python 3 and Bash. Run from the repository root:
+You do not need to install Linux build tools on your own computer. GitHub Actions can build the ISO on a hosted Ubuntu runner and give you a downloadable artifact.
+
+1. Open the repository's **Actions** tab: [NebulaOS Actions](https://github.com/gladiatorgaming789-byte/NebulaOS/actions).
+2. Select **Build NebulaForge ISO** from the workflow list.
+3. Click **Run workflow**, choose the branch you want to build, optionally enter a short build note, and click **Run workflow** again.
+4. Open the new workflow run and wait for it to finish. A build can take a while because it downloads Debian and installs the desktop packages.
+5. Under **Artifacts**, download **NebulaForge-OS-amd64**. Extract the downloaded ZIP; it contains the ISO, `SHA256SUMS`, and `build-manifest.txt`.
+6. Verify the ISO checksum from the extracted folder with `sha256sum -c SHA256SUMS` on Linux.
+
+If the build fails, open the failed run's log. The workflow also tries to upload `NebulaForge-build-log` to help diagnose build failures. The ISO artifact is kept for 30 days.
+
+Pushing a version tag such as `v0.1.0` runs the same checks and build, then publishes the ISO and its manifests to a GitHub Release. **A successful build and structural check do not prove that the ISO boots**; complete the BIOS and UEFI VM tests in [the test plan](docs/TEST_PLAN.md) before describing a release as boot-validated.
+
+## Local build (advanced)
+
+If you prefer to build on your own Debian/Ubuntu Linux host, you need root/sudo access, network access to Debian package repositories, and the tools used by the workflow (`debootstrap`, `xorriso`, SquashFS tools, GRUB BIOS/EFI tools, and `mtools`):
 
 ```bash
 bash ./scripts/validate-source.sh
-```
-
-For an ISO build, use a Debian/Ubuntu Linux host with root/sudo access, network access to Debian package repositories, and the build dependencies installed by the CI workflow (including `debootstrap`, `xorriso`, SquashFS tools, GRUB BIOS/EFI tools, and `mtools`):
-
-```bash
 sudo bash ./scripts/build-iso.sh
 bash ./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
 (cd dist && sha256sum -c SHA256SUMS)
 ```
 
-The build script may need network access to bootstrap the root filesystem and fetch packages. Keep build outputs in `dist/`; do not commit generated ISOs or local caches.
+The build script fetches Debian packages from the configured repositories. Keep build outputs in `dist/`; do not commit generated ISOs or local caches.
 
 ## Testing and release expectations
 
