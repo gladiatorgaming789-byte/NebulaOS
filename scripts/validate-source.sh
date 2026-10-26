@@ -11,7 +11,7 @@ python3 -m py_compile forge/forge.py desktop/nebula-shell.py desktop/nebula-file
   config/includes.chroot/usr/local/share/nebula/nebula-settings.py \
   config/includes.chroot/usr/local/share/nebula/nebula_settings_backend.py
 bash -n scripts/build-iso.sh scripts/verify-iso.sh scripts/package-source.sh tests/test_verify_iso.sh
-./tests/test_verify_iso.sh
+bash tests/test_verify_iso.sh
 # The ISO builder must use the direct bootstrap path, not depend on live-build.
 grep -q 'debootstrap --arch=' scripts/build-iso.sh
 grep -q 'mksquashfs ' scripts/build-iso.sh
