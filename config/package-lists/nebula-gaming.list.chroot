@@ -1,0 +1,8 @@
+# Optional gaming compatibility and performance tools
+# Storefronts and game content are not bundled.
+wine
+winetricks
+mesa-vulkan-drivers
+vulkan-tools
+mangohud
+gamemode
