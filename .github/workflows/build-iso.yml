@@ -3,6 +3,16 @@ run-name: Build NebulaForge ISO (${{ github.ref_name }})
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: "Package profile for this ISO"
+        required: true
+        type: choice
+        options:
+          - core
+          - gaming
+          - developer
+          - full
+        default: core
       build_notes:
         description: "Optional note to include in this build's summary"
         required: false
@@ -39,7 +49,9 @@ jobs:
           sudo apt-get install -y debootstrap xorriso squashfs-tools grub-common grub-pc-bin grub-efi-amd64-bin mtools
 
       - name: Build ISO
-        run: sudo bash ./scripts/build-iso.sh
+        env:
+          NEBULA_PROFILE: ${{ inputs.profile || 'core' }}
+        run: sudo --preserve-env=NEBULA_PROFILE bash ./scripts/build-iso.sh
 
       - name: Verify ISO structure and boot-menu wiring
         run: bash ./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
@@ -52,6 +64,7 @@ jobs:
       - name: Write build summary
         env:
           BUILD_NOTES: ${{ inputs.build_notes }}
+          NEBULA_PROFILE: ${{ inputs.profile || 'core' }}
         run: |
           {
             echo "## NebulaForge ISO build succeeded"
