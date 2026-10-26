@@ -38,8 +38,9 @@ udisks2
 gvfs
 gvfs-backends
 file-roller
-policykit-1
+# Debian 13 (Trixie) provides polkit as polkitd + pkexec; policykit-1 is unavailable.
 polkitd
+pkexec
 # Developer and troubleshooting basics
 git
 openssh-client
