@@ -15,6 +15,17 @@ NebulaOS is a Debian-based desktop OS project focused on a lightweight live desk
 - `tests/` — automated Python and shell regression tests.
 - `docs/ARCHITECTURE.md`, `docs/TEST_PLAN.md`, `docs/SECURITY.md` — design, acceptance, and security notes.
 
+## Lightweight package profiles
+
+The default `core` image contains the desktop, networking, audio, essential utilities, and Nebula apps without bundling a full compiler toolchain or Wine compatibility stack. Choose a profile when running the GitHub Actions workflow:
+
+- `core` — lightweight desktop and system essentials (default).
+- `gaming` — core plus Wine, Winetricks, Vulkan tools, MangoHud, and GameMode.
+- `developer` — core plus Git, compilers/build tools, Python virtual environments, and editor utilities.
+- `full` — core plus both optional profiles.
+
+For local builds, set `NEBULA_PROFILE=core|gaming|developer|full` before running the builder. Profiles only select packages at build time; they do not yet provide an in-desktop installer.
+
 ## Build an ISO with GitHub Actions (recommended)
 
 You do not need to install Linux build tools on your own computer. GitHub Actions can build the ISO on a hosted Ubuntu runner and give you a downloadable artifact.
