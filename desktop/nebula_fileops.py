@@ -32,7 +32,6 @@ def _reject_self_nesting(source: Path, destination: Path) -> None:
 
 def _copy_regular_file_no_overwrite(source: Path, destination: Path) -> None:
     """Copy to a temporary sibling, then atomically publish without overwriting."""
-    destination.parent.mkdir(parents=False, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".copy-tmp",
                                           dir=str(destination.parent))
     os.close(fd)
