@@ -1,0 +1,11 @@
+# Optional developer toolchain
+git
+openssh-client
+build-essential
+cmake
+ninja-build
+python3-venv
+python3-pip
+less
+nano
+vim-tiny
