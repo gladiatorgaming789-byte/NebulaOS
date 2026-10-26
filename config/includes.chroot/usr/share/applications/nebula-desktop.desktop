@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Nebula Desktop
+Comment=NebulaForge application launcher
+Exec=/usr/local/bin/nebula-shell
+Icon=applications-system
+Terminal=false
+Categories=System;Utility;

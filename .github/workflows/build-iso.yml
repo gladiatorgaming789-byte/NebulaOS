@@ -1,0 +1,44 @@
+name: Build NebulaForge ISO
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source and run unit tests
+        run: ./scripts/validate-source.sh
+      - name: Install image build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap xorriso squashfs-tools grub-common grub-pc-bin grub-efi-amd64-bin mtools
+      - name: Build ISO (direct builder; no live-build)
+        run: sudo ./scripts/build-iso.sh
+      - name: Verify ISO structure and boot-menu wiring
+        run: ./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
+      - name: Upload ISO and manifests as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NebulaForge-OS-amd64
+          path: |
+            dist/NebulaForge-OS-amd64.iso
+            dist/SHA256SUMS
+            dist/build-manifest.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish ISO to GitHub Release for version tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NebulaForge OS ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/NebulaForge-OS-amd64.iso
+            dist/SHA256SUMS
+            dist/build-manifest.txt

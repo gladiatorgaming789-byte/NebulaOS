@@ -1,0 +1,10 @@
+/build/
+/chroot/
+/binary/
+/.build/
+/dist/*.iso
+/dist/*.sha256
+/dist/SHA256SUMS
+/build.log
+__pycache__/
+*.py[cod]

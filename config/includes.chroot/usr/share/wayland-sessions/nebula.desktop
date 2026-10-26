@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Nebula Desktop (Wayland)
+Comment=NebulaForge OS shell running on labwc
+Exec=labwc
+Type=Application
+DesktopNames=Nebula

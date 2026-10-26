@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+# Live sessions should not require a hard-coded password. live-config creates
+# the default live user; add a narrowly scoped admin group membership.
+if id user >/dev/null 2>&1; then
+    usermod -aG sudo,audio,video,plugdev user || true
+fi
+install -d -m 0755 /usr/local/share/nebula
+printf '%s\n' 'NebulaForge OS live image' > /usr/local/share/nebula/IMAGE_ID

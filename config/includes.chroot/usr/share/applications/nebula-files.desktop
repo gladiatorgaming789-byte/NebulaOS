@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Nebula Files
+Comment=Browse and manage files
+Exec=nebula-files
+Icon=system-file-manager
+Terminal=false
+Type=Application
+Categories=System;FileTools;FileManager;
+StartupNotify=true

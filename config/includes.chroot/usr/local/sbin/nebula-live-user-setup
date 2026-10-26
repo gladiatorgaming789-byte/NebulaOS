@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+# live-config creates the unprivileged live account during boot. Wait for that
+# bounded window instead of silently succeeding before the account exists.
+tries=0
+while ! id user >/dev/null 2>&1; do
+    tries=$((tries + 1))
+    if [ "$tries" -ge 30 ]; then
+        echo "NebulaForge: live-config did not create the expected 'user' account in time." >&2
+        exit 1
+    fi
+    sleep 1
+done
+# Add only the known live account to desktop device-access groups. Never set a
+# fixed password or grant passwordless sudo here.
+usermod -aG audio,video,plugdev,netdev,bluetooth user
