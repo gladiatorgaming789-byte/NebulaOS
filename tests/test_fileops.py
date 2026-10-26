@@ -8,6 +8,7 @@ spec = importlib.util.spec_from_file_location("nebula_fileops", MODULE)
 fileops = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fileops)
 
+
 class FileOpsTests(unittest.TestCase):
     def test_rejects_path_traversal_names(self):
         for name in ("", ".", "..", "../escape", "folder/file", "folder\\file", "bad\x00name"):
@@ -17,33 +18,90 @@ class FileOpsTests(unittest.TestCase):
 
     def test_copy_and_move_refuse_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp); src = root / "source.txt"; src.write_text("safe")
-            dst = root / "copy.txt"; fileops.copy_item(src, dst)
+            root = Path(tmp)
+            src = root / "source.txt"
+            src.write_text("safe")
+            dst = root / "copy.txt"
+            fileops.copy_item(src, dst)
             self.assertEqual(dst.read_text(), "safe")
-            with self.assertRaises(FileExistsError): fileops.copy_item(src, dst)
-            moved = root / "moved.txt"; fileops.move_item(src, moved)
-            self.assertFalse(src.exists()); self.assertEqual(moved.read_text(), "safe")
-            with self.assertRaises(FileExistsError): fileops.move_item(moved, dst)
+            with self.assertRaises(FileExistsError):
+                fileops.copy_item(src, dst)
+            moved = root / "moved.txt"
+            fileops.move_item(src, moved)
+            self.assertFalse(src.exists())
+            self.assertEqual(moved.read_text(), "safe")
+            with self.assertRaises(FileExistsError):
+                fileops.move_item(moved, dst)
 
     def test_copy_and_delete_symlink_without_touching_target(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp); target = root / "target.txt"; target.write_text("keep")
-            link = root / "link.txt"; link.symlink_to(target)
-            copied = root / "copied-link.txt"; fileops.copy_item(link, copied)
+            root = Path(tmp)
+            target = root / "target.txt"
+            target.write_text("keep")
+            link = root / "link.txt"
+            link.symlink_to(target)
+            copied = root / "copied-link.txt"
+            fileops.copy_item(link, copied)
             self.assertTrue(copied.is_symlink())
             fileops.delete_item(link)
-            self.assertTrue(target.exists()); self.assertEqual(target.read_text(), "keep")
+            self.assertTrue(target.exists())
+            self.assertEqual(target.read_text(), "keep")
 
     def test_copy_directory_preserves_nested_symlink(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp); target = root / "target"; target.mkdir(); (target / "data").write_text("x")
-            source = root / "source"; source.mkdir(); (source / "shortcut").symlink_to(target, target_is_directory=True)
-            dest = root / "dest"; fileops.copy_item(source, dest)
+            root = Path(tmp)
+            target = root / "target"
+            target.mkdir()
+            (target / "data").write_text("x")
+            source = root / "source"
+            source.mkdir()
+            (source / "shortcut").symlink_to(target, target_is_directory=True)
+            dest = root / "dest"
+            fileops.copy_item(source, dest)
             self.assertTrue((dest / "shortcut").is_symlink())
             self.assertEqual((dest / "shortcut").readlink(), target)
+
+    def test_copy_and_move_reject_directory_into_itself_or_descendant(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            source.mkdir()
+            (source / "data.txt").write_text("finite")
+            for operation in (fileops.copy_item, fileops.move_item):
+                with self.subTest(operation=operation.__name__), self.assertRaises(ValueError):
+                    operation(source, source / "nested" / "destination")
+            self.assertEqual((source / "data.txt").read_text(), "finite")
+            self.assertFalse((source / "nested").exists())
+
+    def test_existing_symlink_destination_is_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("source")
+            target = root / "target.txt"
+            target.write_text("preserve")
+            destination = root / "destination.txt"
+            destination.symlink_to(target)
+            for operation in (fileops.copy_item, fileops.move_item):
+                with self.subTest(operation=operation.__name__), self.assertRaises(FileExistsError):
+                    operation(source, destination)
+            self.assertEqual(target.read_text(), "preserve")
+            self.assertEqual(source.read_text(), "source")
+
+    def test_copy_file_uses_atomic_no_overwrite_publish(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("new content")
+            destination = root / "destination.txt"
+            fileops.copy_item(source, destination)
+            self.assertEqual(destination.read_text(), "new content")
+            self.assertFalse(list(root.glob("*.copy-tmp")))
 
     def test_format_size(self):
         self.assertEqual(fileops.format_size(42), "42 B")
         self.assertEqual(fileops.format_size(1024), "1.0 KB")
 
-if __name__ == "__main__": unittest.main()
+
+if __name__ == "__main__":
+    unittest.main()
