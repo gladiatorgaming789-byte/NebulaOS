@@ -1,4 +1,0 @@
-#!/bin/sh
-# Start the original shell as the logged-in desktop user, never as root.
-swaybg -i /usr/share/backgrounds/nebula.svg -m fill &
-/usr/local/bin/nebula-shell &
