@@ -1,32 +1,76 @@
 name: Build NebulaForge ISO
+run-name: Build NebulaForge ISO (${{ github.ref_name }})
 on:
   workflow_dispatch:
+    inputs:
+      build_notes:
+        description: "Optional note to include in this build's summary"
+        required: false
+        type: string
+        default: ""
   push:
     tags:
       - 'v*'
+
 permissions:
-  contents: write
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 180
+    permissions:
+      contents: write # Needed only because version tags publish a GitHub Release.
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Show runner capacity
+        run: |
+          echo "### Runner capacity" >> "$GITHUB_STEP_SUMMARY"
+          df -h "$GITHUB_WORKSPACE" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Validate source and run unit tests
         run: bash ./scripts/validate-source.sh
-      - name: Install image build tools
+
+      - name: Install ISO build tools
         run: |
           sudo apt-get update
           sudo apt-get install -y debootstrap xorriso squashfs-tools grub-common grub-pc-bin grub-efi-amd64-bin mtools
-      - name: Build ISO (direct builder; no live-build)
+
+      - name: Build ISO
         run: sudo bash ./scripts/build-iso.sh
+
       - name: Verify ISO structure and boot-menu wiring
         run: bash ./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
-      - name: Verify published checksum manifest
+
+      - name: Verify ISO checksum manifest
         run: |
           cd dist
           sha256sum -c SHA256SUMS
-      - name: Upload ISO and manifests as workflow artifact
+
+      - name: Write build summary
+        env:
+          BUILD_NOTES: ${{ inputs.build_notes }}
+        run: |
+          {
+            echo "## NebulaForge ISO build succeeded"
+            echo
+            echo "- Source ref: \`${GITHUB_REF_NAME}\`"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- ISO: \`NebulaForge-OS-amd64.iso\`"
+            echo "- Checksum manifest: \`SHA256SUMS\`"
+            echo "- Build manifest: \`build-manifest.txt\`"
+            echo
+            echo "> Structural verification passed. This does not prove the ISO boots; complete the BIOS and UEFI VM tests before calling a release boot-validated."
+            if [[ -n "$BUILD_NOTES" ]]; then
+              echo
+              echo "### Build note"
+              echo "$BUILD_NOTES"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload ISO, checksum, and build manifest
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: NebulaForge-OS-amd64
@@ -35,7 +79,17 @@ jobs:
             dist/SHA256SUMS
             dist/build-manifest.txt
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build log if the workflow fails
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: NebulaForge-build-log
+          path: build.log
+          if-no-files-found: ignore
           retention-days: 14
+
       - name: Publish ISO to GitHub Release for version tags
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
