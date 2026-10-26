@@ -14,7 +14,7 @@ SECURITY_MIRROR="${NEBULA_DEBIAN_SECURITY_MIRROR:-http://security.debian.org/deb
 PROFILE="${NEBULA_PROFILE:-core}"
 case "$PROFILE" in
   core|gaming|developer|full) ;;
-  *) printf "ERROR: Unknown NEBULA_PROFILE %s. Choose core, gaming, developer, or full.\\n" "$PROFILE" >&2; exit 1 ;;
+  *) printf "ERROR: Unknown NEBULA_PROFILE %s. Choose core, gaming, developer, or full.\n" "$PROFILE" >&2; exit 1 ;;
 esac
 
 mkdir -p "$DIST"
@@ -90,7 +90,7 @@ case "$PROFILE" in
   full) PROFILE_LISTS+=("$ROOT/config/package-lists/nebula-gaming.list.chroot" "$ROOT/config/package-lists/nebula-developer.list.chroot") ;;
 esac
 mapfile -t PACKAGES < <(sed -e 's/#.*//' -e 's/[[:space:]]//g' "${PROFILE_LISTS[@]}" | sed '/^$/d' | sort -u)
-printf 'Selected Nebula profile: %s\\n' "$PROFILE"
+printf 'Selected Nebula profile: %s\n' "$PROFILE"
 chroot "$ROOTFS" /usr/bin/env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${PACKAGES[@]}"
 
 printf '\n==> Stage 3/7: install NebulaForge files and configure the live session\n'
