@@ -44,11 +44,7 @@ def system_health(_: argparse.Namespace) -> int:
         code, output = run_readonly(command)
         checks.append({"check": label, "ok": code == 0, "details": output or ("available" if code == 0 else "not available")})
     print(json.dumps(checks, indent=2))
-    # systemd and root-disk readability are required; network and Vulkan are optional
-    # capabilities on some installs, so report them without failing overall health.
-    required = {"systemd", "disk"}
-    failed_required = [item["check"] for item in checks if item["check"] in required and not item["ok"]]
-    return 1 if failed_required else 0
+    # systemd and root-disk readability are required; network and Vulkan are optional\n    # capabilities on some installs, so report them without failing overall health.\n    required = {"systemd", "disk"}\n    failed_required = [item["check"] for item in checks if item["check"] in required and not item["ok"]]\n    return 1 if failed_required else 0
 
 
 def game_list(_: argparse.Namespace) -> int:
