@@ -20,14 +20,14 @@ NebulaOS is a Debian-based desktop OS project focused on a lightweight live desk
 For source validation, use Python 3 and Bash. Run from the repository root:
 
 ```bash
-./scripts/validate-source.sh
+bash ./scripts/validate-source.sh
 ```
 
 For an ISO build, use a Debian/Ubuntu Linux host with root/sudo access, network access to Debian package repositories, and the build dependencies installed by the CI workflow (including `debootstrap`, `xorriso`, SquashFS tools, GRUB BIOS/EFI tools, and `mtools`):
 
 ```bash
-sudo ./scripts/build-iso.sh
-./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
+sudo bash ./scripts/build-iso.sh
+bash ./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
 sha256sum -c dist/SHA256SUMS
 ```
 
