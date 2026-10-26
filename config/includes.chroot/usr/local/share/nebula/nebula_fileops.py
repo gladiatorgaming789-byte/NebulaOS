@@ -1,11 +1,13 @@
 """Filesystem operations shared by Nebula Files and its offline tests.
 
-These helpers never follow a symlink while copying/deleting the link itself.
-They do not elevate privileges and never overwrite an existing destination.
+Operations refuse overwrites and reject directory destinations inside their source.
+They never elevate privileges and preserve symlinks instead of following them.
 """
 from __future__ import annotations
+
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 
@@ -15,23 +17,84 @@ def validate_name(name: str) -> str:
     return name
 
 
+def _reject_self_nesting(source: Path, destination: Path) -> None:
+    """Reject copying/moving a directory into itself or any descendant."""
+    if source.is_symlink() or not source.is_dir():
+        return
+    source_real = source.resolve(strict=True)
+    destination_real = destination.resolve(strict=False)
+    try:
+        destination_real.relative_to(source_real)
+    except ValueError:
+        return
+    raise ValueError(f"Destination must not be inside source directory: {destination}")
+
+
+def _copy_regular_file_no_overwrite(source: Path, destination: Path) -> None:
+    """Copy to a temporary sibling, then atomically publish without overwriting."""
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".copy-tmp",
+                                          dir=str(destination.parent))
+    os.close(fd)
+    temporary = Path(temporary_name)
+    try:
+        shutil.copy2(source, temporary, follow_symlinks=False)
+        # Hard-link creation fails atomically if another process created destination.
+        os.link(temporary, destination, follow_symlinks=False)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def copy_item(source: Path, destination: Path) -> None:
     source, destination = Path(source), Path(destination)
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(f"Destination already exists: {destination}")
+    if not source.exists() and not source.is_symlink():
+        raise FileNotFoundError(source)
+    _reject_self_nesting(source, destination)
     if source.is_symlink():
         os.symlink(os.readlink(source), destination)
     elif source.is_dir():
         shutil.copytree(source, destination, symlinks=True)
     else:
-        shutil.copy2(source, destination, follow_symlinks=False)
+        _copy_regular_file_no_overwrite(source, destination)
+
+
+def _rename_no_replace(source: Path, destination: Path) -> bool:
+    """Use Linux renameat2(RENAME_NOREPLACE) when available; return False otherwise."""
+    try:
+        import ctypes
+        libc = ctypes.CDLL(None, use_errno=True)
+        renameat2 = libc.renameat2
+    except (AttributeError, OSError):
+        return False
+    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    renameat2.restype = ctypes.c_int
+    result = renameat2(-100, os.fsencode(source), -100, os.fsencode(destination), 1)
+    if result == 0:
+        return True
+    error = ctypes.get_errno()
+    if error == 17:  # EEXIST
+        raise FileExistsError(error, os.strerror(error), str(destination))
+    if error in (38, 22, 95, 18):  # ENOSYS, EINVAL, EOPNOTSUPP, EXDEV
+        return False
+    raise OSError(error, os.strerror(error), str(destination))
 
 
 def move_item(source: Path, destination: Path) -> None:
     source, destination = Path(source), Path(destination)
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(f"Destination already exists: {destination}")
-    shutil.move(str(source), str(destination))
+    if not source.exists() and not source.is_symlink():
+        raise FileNotFoundError(source)
+    _reject_self_nesting(source, destination)
+    if _rename_no_replace(source, destination):
+        return
+    # Cross-filesystem fallback is copy-then-delete. Source remains if copy fails.
+    copy_item(source, destination)
+    delete_item(source)
 
 
 def delete_item(path: Path) -> None:
