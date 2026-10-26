@@ -51,7 +51,7 @@ else
   echo 'ISO verifier rejected the complete fixture.' >&2
   exit 1
 fi
-if PATH="$TMP/bin:$PATH" MOCK_MISSING_UEFI=1 "$ROOT/scripts/verify-iso.sh" "$TMP/fake.iso" >"$TMP/failure.log" 2>&1; then
+if PATH="$TMP/bin:$PATH" MOCK_MISSING_UEFI=1 bash "$ROOT/scripts/verify-iso.sh" "$TMP/fake.iso" >"$TMP/failure.log" 2>&1; then
   echo 'ISO verifier accepted a fixture missing UEFI metadata.' >&2
   exit 1
 fi
