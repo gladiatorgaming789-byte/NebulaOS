@@ -26,6 +26,9 @@ grep -q 'verify-iso.sh' scripts/build-iso.sh
 grep -q 'El Torito' scripts/verify-iso.sh
 grep -q 'safe graphics' scripts/verify-iso.sh
 grep -q 'sha256sum -c' scripts/package-source.sh
+grep -q '^wine$' config/package-lists/nebula-gaming.list.chroot
+grep -q '^build-essential$' config/package-lists/nebula-developer.list.chroot
+grep -q '^labwc$' config/package-lists/nebula.list.chroot
 grep -q '^wine
 grep -q 'Live root filesystem acceptance checks passed' scripts/build-iso.sh
 if grep -Eq '(^|[[:space:]])lb (config|build)([[:space:]]|$)' scripts/build-iso.sh; then
