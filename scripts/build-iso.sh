@@ -154,6 +154,15 @@ HOSTS
 # Nebula configuration have been installed.
 chroot "$ROOTFS" update-initramfs -u -k all
 
+# Do not package the build host's live virtual filesystems into the ISO.
+# /proc and /sys expose kernel interfaces rather than ordinary image files;
+# /dev and /run are also runtime mounts that must be recreated at boot.
+for target in run sys proc dev; do
+  if mountpoint -q "$ROOTFS/$target"; then
+    umount -R "$ROOTFS/$target"
+  fi
+done
+
 printf '\n==> Stage 4/7: remove package caches and prepare live filesystem\n'
 chroot "$ROOTFS" apt-get clean
 rm -rf "$ROOTFS/var/lib/apt/lists/"* "$ROOTFS/tmp/"* "$ROOTFS/var/tmp/"*
