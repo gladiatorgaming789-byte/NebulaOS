@@ -182,11 +182,11 @@ grub-mkrescue -o "$ISO_TMP" "$ISO_TREE" -- -volid NEBULAFORGE
 [[ -s "$ISO_TMP" ]] || fail "GRUB returned without producing a non-empty ISO."
 # Inspect the completed image before promoting it to the release path. This
 # checks the live payload, BIOS/UEFI El Torito metadata, and embedded GRUB menu.
-"$ROOT/scripts/verify-iso.sh" "$ISO_TMP"
+bash "$ROOT/scripts/verify-iso.sh" "$ISO_TMP"
 mv "$ISO_TMP" "$DIST/NebulaForge-OS-amd64.iso"
 
 printf '\n==> Stage 7/7: write checksum and build manifest\n'
-sha256sum "$DIST/NebulaForge-OS-amd64.iso" > "$DIST/SHA256SUMS"
+(cd "$DIST" && sha256sum "NebulaForge-OS-amd64.iso" > "SHA256SUMS")
 cat > "$DIST/build-manifest.txt" <<MANIFEST
 Project: NebulaForge OS
 Architecture: $ARCH
