@@ -55,8 +55,11 @@ def copy_item(source: Path, destination: Path) -> None:
         raise FileNotFoundError(source)
     _reject_self_nesting(source, destination)
     if source.is_symlink():
+        # symlink() itself atomically refuses an already-existing destination.
         os.symlink(os.readlink(source), destination)
     elif source.is_dir():
+        # copytree creates the destination directory exclusively; it fails if it
+        # already exists, including when a concurrent process wins the race.
         shutil.copytree(source, destination, symlinks=True)
     else:
         _copy_regular_file_no_overwrite(source, destination)
@@ -72,13 +75,15 @@ def _rename_no_replace(source: Path, destination: Path) -> bool:
         return False
     renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
     renameat2.restype = ctypes.c_int
-    result = renameat2(-100, os.fsencode(source), -100, os.fsencode(destination), 1)
+    result = renameat2(-100, os.fsencode(source), -100, os.fsencode(destination), 1)  # AT_FDCWD, RENAME_NOREPLACE
     if result == 0:
         return True
     error = ctypes.get_errno()
-    if error == 17:  # EEXIST
+    if error in (17,):  # EEXIST
         raise FileExistsError(error, os.strerror(error), str(destination))
-    if error in (38, 22, 95, 18):  # ENOSYS, EINVAL, EOPNOTSUPP, EXDEV
+    if error in (38, 22, 95):  # ENOSYS, EINVAL, EOPNOTSUPP
+        return False
+    if error == 18:  # EXDEV
         return False
     raise OSError(error, os.strerror(error), str(destination))
 
@@ -92,7 +97,8 @@ def move_item(source: Path, destination: Path) -> None:
     _reject_self_nesting(source, destination)
     if _rename_no_replace(source, destination):
         return
-    # Cross-filesystem fallback is copy-then-delete. Source remains if copy fails.
+    # Cross-filesystem fallback is copy-then-delete. copy_item has exclusive
+    # destination creation; the source remains intact if copying fails.
     copy_item(source, destination)
     delete_item(source)
 
