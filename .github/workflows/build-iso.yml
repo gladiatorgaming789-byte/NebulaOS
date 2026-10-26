@@ -71,6 +71,7 @@ jobs:
             echo
             echo "- Source ref: \`${GITHUB_REF_NAME}\`"
             echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Profile: \`${NEBULA_PROFILE}\`"
             echo "- ISO: \`NebulaForge-OS-amd64.iso\`"
             echo "- Checksum manifest: \`SHA256SUMS\`"
             echo "- Build manifest: \`build-manifest.txt\`"
