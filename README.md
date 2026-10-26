@@ -28,7 +28,7 @@ For an ISO build, use a Debian/Ubuntu Linux host with root/sudo access, network 
 ```bash
 sudo bash ./scripts/build-iso.sh
 bash ./scripts/verify-iso.sh dist/NebulaForge-OS-amd64.iso
-sha256sum -c dist/SHA256SUMS
+(cd dist && sha256sum -c SHA256SUMS)
 ```
 
 The build script may need network access to bootstrap the root filesystem and fetch packages. Keep build outputs in `dist/`; do not commit generated ISOs or local caches.
