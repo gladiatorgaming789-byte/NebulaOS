@@ -41,28 +41,11 @@ file-roller
 # Debian 13 (Trixie) provides polkit as polkitd + pkexec; policykit-1 is unavailable.
 polkitd
 pkexec
-# Developer and troubleshooting basics
-git
-openssh-client
-build-essential
-cmake
-ninja-build
-python3-venv
-python3-pip
-less
-nano
-vim-tiny
+# Core diagnostics; development toolchains and gaming compatibility are optional profiles
 htop
 pciutils
 usbutils
 lshw
-# Gaming foundation: installable and configured without bundling store content
-wine
-winetricks
-mesa-vulkan-drivers
-vulkan-tools
-mangohud
-gamemode
 # Desktop basics
 fonts-dejavu
 fonts-noto-core

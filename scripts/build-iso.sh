@@ -11,6 +11,11 @@ ARCH=amd64
 SUITE=trixie
 MIRROR="${NEBULA_DEBIAN_MIRROR:-http://deb.debian.org/debian}"
 SECURITY_MIRROR="${NEBULA_DEBIAN_SECURITY_MIRROR:-http://security.debian.org/debian-security}"
+PROFILE="${NEBULA_PROFILE:-core}"
+case "$PROFILE" in
+  core|gaming|developer|full) ;;
+  *) printf "ERROR: Unknown NEBULA_PROFILE %s. Choose core, gaming, developer, or full.\n" "$PROFILE" >&2; exit 1 ;;
+esac
 
 mkdir -p "$DIST"
 exec > >(tee -a "$LOG") 2>&1
@@ -22,7 +27,10 @@ for tool in debootstrap chroot mount umount mksquashfs grub-mkrescue xorriso mfo
   command -v "$tool" >/dev/null 2>&1 || fail "Missing build dependency '$tool'. Install debootstrap, squashfs-tools, grub-common, grub-pc-bin, grub-efi-amd64-bin, xorriso, and mtools. live-build is not required."
 done
 command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required."
-[[ -f "$ROOT/config/package-lists/nebula.list.chroot" ]] || fail "Missing package list."
+[[ -f "$ROOT/config/package-lists/nebula.list.chroot" ]] || fail "Missing core package list."
+for profile_file in gaming developer; do
+  [[ -f "$ROOT/config/package-lists/nebula-${profile_file}.list.chroot" ]] || fail "Missing optional package profile: $profile_file"
+done
 
 MIRROR_HOST="${MIRROR#*://}"
 MIRROR_HOST="${MIRROR_HOST%%/*}"
@@ -75,11 +83,20 @@ chroot "$ROOTFS" /usr/bin/env DEBIAN_FRONTEND=noninteractive sh -eu -c '
   apt-get update
   apt-get install -y --no-install-recommends ca-certificates gnupg locales tzdata systemd-sysv sudo live-boot live-config linux-image-amd64 initramfs-tools
 '
-mapfile -t PACKAGES < <(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$ROOT/config/package-lists/nebula.list.chroot" | sed '/^$/d' | sort -u)
+PROFILE_LISTS=("$ROOT/config/package-lists/nebula.list.chroot")
+case "$PROFILE" in
+  gaming) PROFILE_LISTS+=("$ROOT/config/package-lists/nebula-gaming.list.chroot") ;;
+  developer) PROFILE_LISTS+=("$ROOT/config/package-lists/nebula-developer.list.chroot") ;;
+  full) PROFILE_LISTS+=("$ROOT/config/package-lists/nebula-gaming.list.chroot" "$ROOT/config/package-lists/nebula-developer.list.chroot") ;;
+esac
+mapfile -t PACKAGES < <(sed -e 's/#.*//' -e 's/[[:space:]]//g' "${PROFILE_LISTS[@]}" | sed '/^$/d' | sort -u)
+printf 'Selected Nebula profile: %s\n' "$PROFILE"
 chroot "$ROOTFS" /usr/bin/env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${PACKAGES[@]}"
 
 printf '\n==> Stage 3/7: install NebulaForge files and configure the live session\n'
 cp -a "$ROOT/config/includes.chroot/." "$ROOTFS/"
+# Set runtime modes explicitly; repository content APIs may not preserve executable bits.
+chmod 0755 "$ROOTFS/usr/local/bin/nebula-shell" "$ROOTFS/usr/local/bin/nebula-files" "$ROOTFS/usr/local/bin/nebula-settings" "$ROOTFS/usr/local/bin/forge" "$ROOTFS/usr/local/sbin/nebula-live-user-setup" "$ROOTFS/etc/xdg/labwc/autostart"
 install -d -m 0755 "$ROOTFS/usr/local/share/nebula"
 printf '%s\n' 'NebulaForge OS live image' > "$ROOTFS/usr/local/share/nebula/IMAGE_ID"
 
@@ -189,6 +206,7 @@ printf '\n==> Stage 7/7: write checksum and build manifest\n'
 (cd "$DIST" && sha256sum "NebulaForge-OS-amd64.iso" > "SHA256SUMS")
 cat > "$DIST/build-manifest.txt" <<MANIFEST
 Project: NebulaForge OS
+Profile: $PROFILE
 Architecture: $ARCH
 Base distribution: Debian GNU/Linux 13 (Trixie)
 Build method: direct debootstrap + chroot package installation + SquashFS + GRUB (no live-build)

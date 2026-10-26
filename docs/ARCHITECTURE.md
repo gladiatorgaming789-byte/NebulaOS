@@ -19,6 +19,10 @@ NebulaForge OS targets Debian 13 (Trixie) on amd64. Debian supplies the kernel, 
 - LightDM: display manager.
 - Wine, Mesa, Vulkan tools, MangoHud, GameMode: third-party gaming stack components; availability and licensing must be checked for every release.
 
+## Lightweight package profiles
+
+The base package list is intentionally limited to the desktop and essential system functions. The `gaming` profile adds Wine, Winetricks, Vulkan tools, MangoHud, and GameMode. The `developer` profile adds Git, SSH client tools, compiler/build toolchains, and Python environment tooling. `full` combines both optional lists. The build workflow defaults to `core` to keep the default image lean. An interactive in-desktop software/profile manager is a later milestone; these profiles currently select packages during ISO creation.
+
 ## Session startup
 
 LightDM provides a graphical login. The selected Wayland session starts labwc. labwc's session autostart launches `nebula-shell` as the signed-in user. The shell must not run as root. Window placement, snapping, workspaces, and compositor behavior are labwc capabilities, not claimed as original shell code.
