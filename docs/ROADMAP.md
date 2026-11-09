@@ -5,13 +5,15 @@
 - [x] Freestanding 32-bit kernel entry
 - [x] VGA text output
 - [x] ISO build script
-- [ ] Verify boot in VirtualBox and QEMU
+- [x] Verify boot in VirtualBox
 
 ## Phase 1 — Interactive console
-- [ ] Keyboard driver (PS/2 first)
-- [ ] Line editor and command parser
-- [ ] Commands: help, clear, about, meminfo
+- [x] Keyboard input (polling PS/2, set 1 scancodes)
+- [x] Line editor with backspace and enter
+- [x] Command parser
+- [x] Commands: help, clear, about, meminfo
 - [ ] Basic panic/exception reporting
+- [ ] Keyboard layout and controller initialization improvements
 
 ## Phase 2 — Kernel foundations
 - [ ] GDT/IDT and exception handlers
