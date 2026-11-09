@@ -1,0 +1,35 @@
+name: Build NebulaOS ISO
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc-multilib binutils nasm xorriso
+
+      - name: Build bootable ISO
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NebulaOS-ISO
+          path: |
+            build/NebulaOS.iso
+            build/kernel.elf
+            build/kernel.bin
+          if-no-files-found: error
+          retention-days: 14
